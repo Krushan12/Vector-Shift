@@ -1,55 +1,68 @@
 // textNode.js
 
-import { useCallback, useEffect, useState, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { BaseNode, NodeField, NodeInput, useNodeState } from '../components/nodes/BaseNode';
 import { theme } from '../theme';
 
 const extractVariables = (text) => {
-  const regex = /{{([^}]+)}}/g;
+  const regex = /{{([^{}]+)}}/g;
   const matches = [...text.matchAll(regex)];
-  return matches.map(match => ({
-    name: match[1].trim(),
-    start: match.index,
-    end: match.index + match[0].length
-  }));
+  const variables = new Set();
+  
+  matches.forEach(match => {
+    const varName = match[1].trim();
+    if (/^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(varName)) {
+      variables.add(varName);
+    }
+  });
+  
+  return Array.from(variables);
 };
 
-const VariableHighlight = ({ text, variables }) => {
-  if (!variables.length) return <span>{text}</span>;
-
+const TextPreview = ({ text }) => {
+  const variables = extractVariables(text);
   let lastIndex = 0;
   const elements = [];
 
-  variables.forEach((variable, i) => {
-    // Add text before the variable
-    if (variable.start > lastIndex) {
+  // Find all variable positions
+  const matches = [...text.matchAll(/{{([^{}]+)}}/g)];
+  
+  matches.forEach((match, i) => {
+    if (match.index > lastIndex) {
       elements.push(
         <span key={`text-${i}`}>
-          {text.slice(lastIndex, variable.start)}
+          {text.slice(lastIndex, match.index)}
         </span>
       );
     }
 
-    // Add the highlighted variable
-    elements.push(
-      <span
-        key={`var-${i}`}
-        style={{
-          backgroundColor: theme.colors.secondary + '20',
-          color: theme.colors.secondary,
-          padding: '0 4px',
-          borderRadius: '4px',
-          fontWeight: 500
-        }}
-      >
-        {text.slice(variable.start, variable.end)}
-      </span>
-    );
+    const varName = match[1].trim();
+    if (/^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(varName)) {
+      elements.push(
+        <span
+          key={`var-${i}`}
+          style={{
+            backgroundColor: theme.colors.secondary + '20',
+            color: theme.colors.secondary,
+            padding: '0 4px',
+            borderRadius: '4px',
+            fontWeight: 500
+          }}
+        >
+          {match[0]}
+        </span>
+      );
+    } else {
+      elements.push(
+        <span key={`invalid-${i}`}>
+          {match[0]}
+        </span>
+      );
+    }
 
-    lastIndex = variable.end;
+    lastIndex = match.index + match[0].length;
   });
 
-  // Add any remaining text
   if (lastIndex < text.length) {
     elements.push(
       <span key="text-end">
@@ -68,79 +81,77 @@ export const TextNode = ({ id, data }) => {
     'text'
   );
 
+  const textareaRef = useRef(null);
   const [variables, setVariables] = useState([]);
   const [nodeWidth, setNodeWidth] = useState(280);
-  const textareaRef = useRef(null);
-  const containerRef = useRef(null);
 
-  // Auto-resize textarea and node
   const adjustSizes = useCallback(() => {
     if (textareaRef.current) {
       // Reset height to calculate proper scrollHeight
       textareaRef.current.style.height = 'auto';
       
-      // Calculate new sizes
-      const textWidth = Math.max(
-        ...currText.split('\n').map(line => Math.min(line.length * 8, 400))
-      );
-      const newWidth = Math.max(280, textWidth + 40); // 40px padding
+      // Calculate width based on content
+      const lines = currText.split('\n');
+      const maxLineLength = Math.max(...lines.map(line => line.length));
+      const charWidth = 8; // Approximate width per character
+      const padding = 80; // Additional padding
+      const minWidth = 280;
+      const maxWidth = 800;
+      
+      const calculatedWidth = Math.min(maxWidth, Math.max(minWidth, (maxLineLength * charWidth) + padding));
       
       // Apply new sizes
-      setNodeWidth(newWidth);
-      textareaRef.current.style.width = `${newWidth - 40}px`;
-      textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
+      setNodeWidth(calculatedWidth);
+      textareaRef.current.style.width = `${calculatedWidth - 40}px`; // Account for padding
+      textareaRef.current.style.height = `${Math.min(400, textareaRef.current.scrollHeight)}px`; // Max height of 400px
     }
   }, [currText]);
 
-  // Improved variable extraction
-  const extractVariables = useCallback((text) => {
-    const regex = /{{([^{}]+)}}/g;
-    const matches = [...text.matchAll(regex)];
-    return matches
-      .map(match => match[1].trim())
-      .filter(name => /^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(name)) // Valid JS variable names only
-      .filter((name, index, self) => self.indexOf(name) === index); // Remove duplicates
-  }, []);
-
-  // Update variables and resize when text changes
   useEffect(() => {
-    const vars = extractVariables(currText);
-    setVariables(vars);
+    const newVariables = extractVariables(currText);
+    setVariables(newVariables);
     adjustSizes();
-  }, [currText, adjustSizes, extractVariables]);
+  }, [currText, adjustSizes]);
 
   return (
     <BaseNode
       id={id}
       data={data}
       title="Text"
-      inputs={[{
-        id: 'input',
-        type: 'target',
-        style: {
-          backgroundColor: theme.colors.secondary,
-          border: `2px solid ${theme.colors.surface}`,
-        }
-      }, ...variables.map(varName => ({
-        id: varName,
-        type: 'target',
-        label: varName,
-        style: {
-          backgroundColor: theme.colors.secondary,
-          border: `2px solid ${theme.colors.surface}`,
-        }
-      }))]}
+      inputs={[
+        ...(variables.length ? [] : [{
+          id: 'input',
+          type: 'target',
+          style: {
+            backgroundColor: theme.colors.secondary,
+            border: `2px solid ${theme.colors.surface}`,
+          }
+        }]),
+        ...variables.map(varName => ({
+          id: varName,
+          type: 'target',
+          label: varName,
+          style: {
+            backgroundColor: theme.colors.secondary,
+            border: `2px solid ${theme.colors.surface}`,
+          }
+        }))
+      ].sort((a, b) => a.label?.localeCompare(b.label) || 0)}
       outputs={[{ 
         id: 'output',
-        type: 'source'
+        type: 'source',
+        style: {
+          backgroundColor: theme.colors.node.text,
+          border: `2px solid ${theme.colors.surface}`,
+        }
       }]}
       style={{ 
-        width: `${nodeWidth}px`, 
-        minHeight: '100px',
+        width: `${nodeWidth}px`,
+        maxWidth: '800px',
         transition: 'width 0.2s ease-in-out'
       }}
     >
-      <NodeField label={`Text (${variables.length} variables)`}>
+      <NodeField label={`Text ${variables.length ? `(${variables.length} variables)` : ''}`}>
         <div style={{ position: 'relative' }}>
           <NodeInput
             ref={textareaRef}
@@ -151,18 +162,31 @@ export const TextNode = ({ id, data }) => {
               adjustSizes();
             }}
             onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                e.target.style.height = '0';
-                adjustSizes();
+              if (e.key === 'Tab') {
+                e.preventDefault();
+                const start = e.target.selectionStart;
+                const end = e.target.selectionEnd;
+                e.target.value = currText.substring(0, start) + '  ' + currText.substring(end);
+                e.target.selectionStart = e.target.selectionEnd = start + 2;
+                handleTextChange(e);
               }
             }}
             style={{
               width: '100%',
               minHeight: '60px',
+              maxHeight: '400px',
               padding: '8px',
               lineHeight: '1.5',
               resize: 'none',
-              fontFamily: 'monospace'
+              fontFamily: 'monospace',
+              backgroundColor: theme.colors.background,
+              border: `1px solid ${theme.colors.border}`,
+              borderRadius: theme.borderRadius.sm,
+              '&:focus': {
+                outline: 'none',
+                borderColor: theme.colors.secondary,
+                boxShadow: `0 0 0 2px ${theme.colors.secondary}20`
+              }
             }}
             placeholder="Enter text here. Use {{variable}} for variables..."
           />
@@ -172,9 +196,12 @@ export const TextNode = ({ id, data }) => {
           padding: '8px',
           backgroundColor: theme.colors.background,
           borderRadius: theme.borderRadius.sm,
-          fontSize: '14px'
+          fontSize: '14px',
+          border: `1px solid ${theme.colors.border}`,
+          maxHeight: '200px',
+          overflowY: 'auto'
         }}>
-          <VariableHighlight text={currText} variables={variables} />
+          <TextPreview text={currText} />
         </div>
       </NodeField>
     </BaseNode>

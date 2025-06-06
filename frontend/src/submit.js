@@ -91,17 +91,15 @@ export const SubmitButton = () => {
     return (
         <>
             <div style={{
-                position: 'absolute',
-                top: '16px',
-                right: '16px',
-                zIndex: 1000
+                display: 'flex',
+                alignItems: 'center'
             }}>
                 <button 
                     onClick={handleSubmit}
                     disabled={isLoading}
                     style={{
-                        backgroundColor: isLoading ? '#9CA3AF' : 'var(--secondary)',
-                        color: 'var(--text-light)',
+                        backgroundColor: isLoading ? '#9CA3AF' : 'var(--text-light)',
+                        color: 'var(--primary)',
                         border: 'none',
                         padding: '12px 24px',
                         borderRadius: '8px',

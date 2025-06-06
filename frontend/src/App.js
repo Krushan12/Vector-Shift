@@ -14,7 +14,10 @@ function App() {
         backgroundColor: 'var(--primary)',
         padding: '16px',
         color: 'var(--text-light)',
-        boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+        boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center'
       }}>
         <h1 style={{ 
           margin: 0,
@@ -23,6 +26,7 @@ function App() {
         }}>
           VectorShift Pipeline Builder
         </h1>
+        <SubmitButton />
       </header>
       <main style={{
         flex: 1,
@@ -33,7 +37,6 @@ function App() {
       }}>
         <PipelineToolbar />
         <PipelineUI />
-        <SubmitButton />
       </main>
     </div>
   );

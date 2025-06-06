@@ -15,6 +15,11 @@ import { ImageNode } from './nodes/imageNode';
 import { ConditionalNode } from './nodes/conditionalNode';
 import { TimerNode } from './nodes/timerNode';
 import { APINode } from './nodes/apiNode';
+import { ArrayNode } from './nodes/arrayNode';
+import { PromptTemplateNode } from './nodes/promptTemplateNode';
+import { DataTransformNode } from './nodes/dataTransformNode';
+import { ValidationNode } from './nodes/validationNode';
+import { DebugNode } from './nodes/debugNode';
 
 import 'reactflow/dist/style.css';
 
@@ -30,6 +35,11 @@ const nodeTypes = {
   conditional: ConditionalNode,
   timer: TimerNode,
   api: APINode,
+  array: ArrayNode,
+  promptTemplate: PromptTemplateNode,
+  dataTransform: DataTransformNode,
+  validation: ValidationNode,
+  debug: DebugNode,
 };
 
 const selector = (state) => ({
@@ -182,6 +192,11 @@ export const PipelineUI = () => {
                             case 'conditional': return '#F97316';
                             case 'timer': return '#84CC16';
                             case 'api': return '#EC4899';
+                            case 'array': return '#A855F7';
+                            case 'promptTemplate': return '#F472B6';
+                            case 'dataTransform': return '#60A5FA';
+                            case 'validation': return '#34D399';
+                            case 'debug': return '#FBBF24';
                             default: return '#94A3B8';
                         }
                     }}
