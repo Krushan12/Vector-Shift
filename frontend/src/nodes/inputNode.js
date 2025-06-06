@@ -1,10 +1,11 @@
 // inputNode.js
 
 import { BaseNode, NodeField, NodeInput, NodeSelect, useNodeState } from '../components/nodes/BaseNode';
+import { theme } from '../theme';
 
 export const InputNode = ({ id, data }) => {
   const [currName, handleNameChange] = useNodeState(
-    data?.inputName || id.replace('customInput-', 'input_'),
+    data?.inputName || 'input_1',
     id,
     'inputName'
   );
@@ -15,12 +16,20 @@ export const InputNode = ({ id, data }) => {
     'inputType'
   );
 
+  const outputHandleId = `${id}-out`;
+
   return (
     <BaseNode
       id={id}
-      data={data}
+      data={{ ...data, name: currName }}
       title="Input"
-      outputs={[{ id: 'value' }]}
+      outputs={[{ 
+        id: outputHandleId,
+        style: {
+          background: theme.colors.primary,
+          zIndex: 1000
+        }
+      }]}
     >
       <NodeField label="Name">
         <NodeInput 
@@ -39,4 +48,4 @@ export const InputNode = ({ id, data }) => {
       </NodeField>
     </BaseNode>
   );
-}
+};

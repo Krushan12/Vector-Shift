@@ -3,9 +3,8 @@ import { Handle, Position } from 'reactflow';
 
 import { theme } from '../../theme';
 
-const defaultStyles = {
-  nodeContainer: {
-    width: 240,
+const defaultStyles = {  nodeContainer: {
+    width: 280,  // Increased width
     minHeight: 100,
     border: `1px solid ${theme.colors.border}`,
     borderRadius: theme.borderRadius.lg,
@@ -16,6 +15,7 @@ const defaultStyles = {
     gap: theme.spacing.md,
     boxShadow: theme.shadows.md,
     transition: 'all 0.2s ease-in-out',
+    position: 'relative', // Ensure proper positioning context
     '&:hover': {
       boxShadow: theme.shadows.lg,
     }
@@ -45,10 +45,11 @@ const defaultStyles = {
     fontSize: theme.typography.fontSize.xs,
     color: theme.colors.text.secondary,
     fontWeight: theme.typography.fontWeight.medium,
-  },
-  input: {
+  },  input: {
     padding: `${theme.spacing.xs} ${theme.spacing.sm}`,
     border: `1px solid ${theme.colors.border}`,
+    width: '100%',
+    boxSizing: 'border-box',
     borderRadius: theme.borderRadius.sm,
     fontSize: theme.typography.fontSize.sm,
     color: theme.colors.text.primary,
@@ -93,10 +94,13 @@ export const BaseNode = ({
   const handleStyle = {
     width: '12px',
     height: '12px',
-    background: '#4F46E5',
+    background: theme.colors.primary,
     border: '2px solid #fff',
     borderRadius: '50%',
     cursor: 'crosshair',
+    opacity: 0.8,
+    transition: 'all 0.2s ease-in-out',
+    zIndex: 1000
   };
 
   return (
@@ -104,13 +108,14 @@ export const BaseNode = ({
       {/* Input Handles */}
       {inputs.map((input, index) => (
         <Handle
-          key={`${id}-${input.id}`}
+          key={`input-${id}-${index}`}
           type="target"
           position={Position.Left}
-          id={`${id}-${input.id}`}
+          id={input.id}
           style={{
             ...handleStyle,
             top: inputs.length === 1 ? '50%' : `${((index + 1) * 100) / (inputs.length + 1)}%`,
+            left: -6,
             ...input.style,
           }}
         />
@@ -129,13 +134,14 @@ export const BaseNode = ({
       {/* Output Handles */}
       {outputs.map((output, index) => (
         <Handle
-          key={`${id}-${output.id}`}
+          key={`output-${id}-${index}`}
           type="source"
           position={Position.Right}
-          id={`${id}-${output.id}`}
+          id={output.id}
           style={{
             ...handleStyle,
             top: outputs.length === 1 ? '50%' : `${((index + 1) * 100) / (outputs.length + 1)}%`,
+            right: -6,
             ...output.style,
           }}
         />

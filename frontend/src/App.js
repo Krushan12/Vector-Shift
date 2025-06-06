@@ -1,6 +1,7 @@
 import { PipelineToolbar } from './toolbar';
 import { PipelineUI } from './ui';
 import { SubmitButton } from './submit';
+import { ClearButton } from './components/ClearButton';
 
 function App() {
   return (
@@ -27,8 +28,7 @@ function App() {
           VectorShift Pipeline Builder
         </h1>
         <SubmitButton />
-      </header>
-      <main style={{
+      </header>      <main style={{
         flex: 1,
         display: 'flex',
         flexDirection: 'column',
@@ -36,6 +36,7 @@ function App() {
         overflow: 'hidden'
       }}>
         <PipelineToolbar />
+        <ClearButton />
         <PipelineUI />
       </main>
     </div>

@@ -2,8 +2,8 @@
 // Displays the drag-and-drop UI
 // --------------------------------------------------
 
-import { useState, useRef, useCallback } from 'react';
-import ReactFlow, { Controls, Background, MiniMap } from 'reactflow';
+import { useState, useRef, useCallback, useEffect } from 'react';
+import ReactFlow, { Controls, Background, MiniMap, useKeyPress } from 'reactflow';
 import { useStore } from './store';
 import { shallow } from 'zustand/shallow';
 import { InputNode } from './nodes/inputNode';
@@ -53,21 +53,26 @@ const selector = (state) => ({
 });
 
 const keyboardActions = {
-  Delete: (nodes, edges, setNodes, setEdges) => {
+  Delete: (nodes, edges, onNodesChange, onEdgesChange) => {
     const selectedNodes = nodes.filter(node => node.selected);
     const selectedEdges = edges.filter(edge => edge.selected);
     
-    if (selectedNodes.length > 0 || selectedEdges.length > 0) {
-      const nodeIds = selectedNodes.map(node => node.id);
-      const updatedNodes = nodes.filter(node => !nodeIds.includes(node.id));
-      const updatedEdges = edges.filter(edge => 
-        !nodeIds.includes(edge.source) && 
-        !nodeIds.includes(edge.target) &&
-        !selectedEdges.find(se => se.id === edge.id)
+    if (selectedNodes.length > 0) {
+      onNodesChange(
+        selectedNodes.map(node => ({
+          type: 'remove',
+          id: node.id,
+        }))
       );
-      
-      setNodes(updatedNodes);
-      setEdges(updatedEdges);
+    }
+    
+    if (selectedEdges.length > 0) {
+      onEdgesChange(
+        selectedEdges.map(edge => ({
+          type: 'remove',
+          id: edge.id,
+        }))
+      );
     }
   }
 };
@@ -82,8 +87,14 @@ export const PipelineUI = () => {
       addNode,
       onNodesChange,
       onEdgesChange,
-      onConnect
+      onConnect: onConnectStore
     } = useStore(selector, shallow);
+
+    const onConnect = useCallback((params) => {
+      // Handle the connection
+      console.log('Connection params:', params);
+      onConnectStore(params);
+    }, [onConnectStore]);
 
     const getInitNodeData = (nodeID, type) => {
       let nodeData = { id: nodeID, nodeType: `${type}` };
@@ -126,90 +137,57 @@ export const PipelineUI = () => {
     const onDragOver = useCallback((event) => {
         event.preventDefault();
         event.dataTransfer.dropEffect = 'move';
-    }, []);
+    }, []);    const onKeyDown = useCallback(
+        (event) => {
+            const action = keyboardActions[event.key];
+            if (action) {
+                action(nodes, edges, onNodesChange, onEdgesChange);
+            }
+        },
+        [nodes, edges, onNodesChange, onEdgesChange]
+    );
 
-    const onKeyDown = useCallback((event) => {
-        const action = keyboardActions[event.key];
-        if (action) {
-            action(nodes, edges, onNodesChange, onEdgesChange);
-        }
-    }, [nodes, edges, onNodesChange, onEdgesChange]);
+    useEffect(() => {
+        // Add keyboard event listener
+        document.addEventListener('keydown', onKeyDown);
+        return () => {
+            // Clean up
+            document.removeEventListener('keydown', onKeyDown);
+        };
+    }, [onKeyDown]);
 
     return (
-        <>
-        <div ref={reactFlowWrapper} style={{width: '100%', height: '100%', position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, overflow: 'hidden'}}>
+        <div 
+            ref={reactFlowWrapper} 
+            style={{width: '100%', height: '100%', position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, overflow: 'hidden'}}
+            tabIndex={0}
+        >
             <ReactFlow
                 nodes={nodes}
                 edges={edges}
                 onNodesChange={onNodesChange}
                 onEdgesChange={onEdgesChange}
                 onConnect={onConnect}
+                nodeTypes={nodeTypes}
+                connectionMode="loose"
+                snapToGrid
+                snapGrid={[gridSize, gridSize]}
+                onInit={setReactFlowInstance}
                 onDrop={onDrop}
                 onDragOver={onDragOver}
-                onInit={setReactFlowInstance}
-                nodeTypes={nodeTypes}
                 proOptions={proOptions}
-                snapGrid={[gridSize, gridSize]}
-                connectionLineType='smoothstep'
-                defaultViewport={{ x: 0, y: 0, zoom: 1 }}
-                minZoom={0.1}
-                maxZoom={4}
-                zoomOnScroll={true}
-                panOnScroll={true}
-                connectionMode="strict"
-                snapToGrid={true}
-                fitViewOptions={{ padding: 50 }}
-                deleteKeyCode={['Backspace', 'Delete']}
-                onKeyDown={onKeyDown}
-                selectionKeyCode={['Shift']}
+                defaultEdgeOptions={{
+                    type: 'smoothstep',
+                    animated: true,
+                    style: {
+                        strokeWidth: 2,
+                        stroke: '#4F46E5'
+                    }
+                }}
             >
-                <Background color="#aaa" gap={gridSize} />
-                <Controls 
-                    showZoom={true}
-                    showFitView={true}
-                    position="top-right"
-                    style={{
-                        marginTop: '20px',
-                        marginRight: '20px',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: '8px',
-                        padding: '8px',
-                        backgroundColor: '#fff',
-                        borderRadius: '8px',
-                        boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-                    }}
-                />
-                <MiniMap 
-                    nodeColor={(node) => {
-                        switch (node.type) {
-                            case 'customInput': return '#3B82F6';
-                            case 'llm': return '#8B5CF6';
-                            case 'customOutput': return '#10B981';
-                            case 'text': return '#F59E0B';
-                            case 'math': return '#EF4444';
-                            case 'image': return '#06B6D4';
-                            case 'conditional': return '#F97316';
-                            case 'timer': return '#84CC16';
-                            case 'api': return '#EC4899';
-                            case 'array': return '#A855F7';
-                            case 'promptTemplate': return '#F472B6';
-                            case 'dataTransform': return '#60A5FA';
-                            case 'validation': return '#34D399';
-                            case 'debug': return '#FBBF24';
-                            default: return '#94A3B8';
-                        }
-                    }}
-                    nodeStrokeWidth={3}
-                    maskColor="rgba(0, 0, 0, 0.1)"
-                    style={{
-                        backgroundColor: '#fff',
-                        border: '1px solid #e5e7eb',
-                        borderRadius: '8px',
-                    }}
-                />
+                <Background />
+                <Controls />
             </ReactFlow>
         </div>
-        </>
-    )
+    );
 }

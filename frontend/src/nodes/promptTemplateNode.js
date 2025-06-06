@@ -42,26 +42,28 @@ export const PromptTemplateNode = ({ id, data }) => {
     updateVariables();
   }, [template, updateVariables]);
 
+  // Create input handles for each variable
+  const inputHandles = variables.map(varName => ({
+    id: `${id}-${varName}-in`,
+    type: 'target',
+    data: { variable: varName },
+    style: {
+      background: theme.colors.primary,
+      zIndex: 1000
+    }
+  }));
+
   return (
     <BaseNode
       id={id}
-      data={data}
+      data={{ ...data, variables }}
       title="Prompt Template"
-      inputs={[
-        ...variables.map(varName => ({
-          id: varName,
-          label: varName,
-          style: {
-            backgroundColor: theme.colors.node.llm,
-            border: `2px solid ${theme.colors.surface}`,
-          }
-        }))
-      ].sort((a, b) => a.label.localeCompare(b.label))}
+      inputs={inputHandles}
       outputs={[{ 
-        id: 'prompt',
+        id: `${id}-out`,
         style: {
-          backgroundColor: theme.colors.node.llm,
-          border: `2px solid ${theme.colors.surface}`,
+          background: theme.colors.primary,
+          zIndex: 1000
         }
       }]}
       style={{ backgroundColor: '#f3e8ff' }}
@@ -76,7 +78,9 @@ export const PromptTemplateNode = ({ id, data }) => {
             fontFamily: 'monospace',
             minHeight: '60px',
             resize: 'vertical',
-            marginBottom: '8px'
+            marginBottom: '8px',
+            width: '100%',
+            padding: '8px'
           }}
         />
       </NodeField>
@@ -86,11 +90,13 @@ export const PromptTemplateNode = ({ id, data }) => {
           as="textarea"
           value={template}
           onChange={handleTemplateChange}
-          placeholder="Enter prompt template. Use {{variable}} for variables..."
+          placeholder="Enter prompt template..."
           style={{
             fontFamily: 'monospace',
             minHeight: '100px',
-            resize: 'vertical'
+            resize: 'vertical',
+            width: '100%',
+            padding: '8px'
           }}
         />
       </NodeField>
